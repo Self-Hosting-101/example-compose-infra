@@ -1,0 +1,112 @@
+services:
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - USER_UID
+      - USER_GID
+      - GITEA__database__DB_TYPE
+      - GITEA__database__HOST
+      - GITEA__database__NAME
+      - GITEA__database__USER
+      - GITEA__database__PASSWD
+      - GITEA__server__LFS_START_SERVER
+      - GITEA__server__DOMAIN
+      - GITEA__server__START_SSH_SERVER
+      - GITEA__server__SSH_DOMAIN
+      - GITEA__server__SSH_PORT
+      - GITEA__server__SSH_LISTEN_PORT
+      - GITEA__repository__DISABLE_STARS
+      - GITEA__mailer__ENABLED
+      - GITEA__mailer__FROM
+      - GITEA__mailer__MAILER_TYPE
+      - GITEA__mailer__HOST
+      - GITEA__mailer__IS_TLS_ENABLED
+      - GITEA__mailer__USER
+      - GITEA__mailer__PASSWD
+      - GITEA__security__INSTALL_LOCK
+      - GITEA__security__DISABLE_WEBHOOKS
+      - GITEA__service__REGISTER_EMAIL_CONFIRM
+      - GITEA__service__EMAIL_DOMAIN_WHITELIST
+      - GITEA__service__ALLOW_ONLY_INTERNAL_REGISTRATION
+      - GITEA__picture__DISABLE_GRAVATAR
+      - GITEA__log__ENABLE_ACCESS_LOG
+      - GITEA__log__ENABLE_SSH_LOG
+      - GITEA__api__ENABLE_SWAGGER
+      - GITEA__oauth2__ENABLE
+      - GITEA__other__SHOW_FOOTER_VERSION
+      - GITEA__other__SHOW_FOOTER_TEMPLATE_LOAD_TIME
+      - GITEA__ui__DEFAULT_THEME
+      - GITEA__ui__THEMES
+      - GITEA__ui__THEME_COLOR_META_TAG
+    #ports:
+    #  - 3000:3000
+    #  - 222:222
+    volumes:
+      - /mnt/data/gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - default
+      - tr-gitea
+      - gitea-wikijs
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-gitea
+      ##
+      # Web interface
+      ##
+      # Specify the service url
+      traefik.http.routers.gitea.rule: Host(`gitea.example.com`)
+      # Specify the internal service port
+      traefik.http.services.gitea.loadbalancer.server.port: 3000
+      # Only allow entry on specified ports 
+      traefik.http.routers.gitea.entrypoints: web, https
+      # Enable tls
+      traefik.http.routers.gitea.tls: true
+      # Use the certificatesResolvers named default
+      traefik.http.routers.gitea.tls.certresolver: default
+      # Set the service name
+      traefik.http.routers.gitea.service: gitea
+      ##
+      # SSH
+      ##
+      # Specify the service url
+      traefik.tcp.routers.gitea-ssh.rule: HostSNI(`*`)
+      # Specify the internal service port
+      traefik.tcp.services.gitea-ssh.loadbalancer.server.port: 222
+      # Only allow entry on specified ports 
+      traefik.tcp.routers.gitea-ssh.entrypoints: ssh
+      # Disable tls
+      traefik.tcp.routers.gitea-ssh.tls: "false"
+      # Set the service name
+      traefik.tcp.routers.gitea-ssh.service: gitea-ssh
+
+  db:
+    image: mariadb
+    container_name: gitea-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+    volumes:
+      - gitea-db:/var/lib/mysql
+
+volumes:
+  gitea-db:
+
+networks:
+  gitea-wikijs:
+    name: gitea-wikijs
+    driver: bridge
+    internal: "true"
+  tr-gitea:
+    external: true
+    name: tr-gitea

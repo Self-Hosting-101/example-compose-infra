@@ -1,0 +1,51 @@
+services:
+  fireflyiii:
+    image: fireflyiii/core:latest
+    container_name: firefly
+    restart: unless-stopped
+    volumes:
+      - firefly_iii_upload:/var/www/html/storage/upload
+    env_file: .firefly_env
+    #ports:
+    #  - 80:8080
+    depends_on:
+      - fireflyiiidb
+    networks:
+      - default
+      - tr-firefly
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-firefly
+      # Specify the service url
+      traefik.http.routers.firefly.rule: Host(`firefly.example.int`)
+      # Specify the internal service port
+      traefik.http.services.firefly.loadbalancer.server.port: 8080
+      # Only allow entry on specified ports 
+      traefik.http.routers.firefly.entrypoints: int, int-https
+      # Enable tls
+      traefik.http.routers.firefly.tls: true
+      # Set the service name
+      traefik.http.routers.firefly.service: firefly
+
+  
+  fireflyiiidb:
+    image: mariadb:latest
+    restart: unless-stopped
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+    volumes:
+      - firefly_iii_db:/var/lib/mysql
+
+volumes:
+   firefly_iii_upload:
+   firefly_iii_db:
+
+networks:
+  tr-firefly:
+    external: true
+    name: tr-firefly

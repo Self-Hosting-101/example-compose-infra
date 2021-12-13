@@ -1,0 +1,18 @@
+version: '3'
+services:
+  certs:
+    build: ${ROOT:-.}/build/
+    image: creased/ca:latest
+    environment:
+      - CERTS=${CERTS:-host}
+      - AUTHORITY_NAME=${AUTHORITY_NAME:-CA}
+      - AUTHORITY_PASSWORD=${AUTHORITY_PASSWORD:-CHANGE_ME}
+      - COMPANY=${COMPANY:-Company}
+      - DEPARTMENT=${DEPARTMENT:-Department}
+      - COUNTRY_CODE=${COUNTRY_CODE:-CC}
+      - STATE=${STATE:-State}
+      - CITY=${CITY:-CC}
+    volumes:
+      - ${ROOT:-.}/data:/certs:rw
+
+

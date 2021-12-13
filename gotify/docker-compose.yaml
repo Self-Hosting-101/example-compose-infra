@@ -1,0 +1,63 @@
+services:
+  app:
+    image: gotify/server:latest
+    container_name: gotify
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - GOTIFY_DEFAULTUSER_NAME
+      - GOTIFY_DEFAULTUSER_PASS
+      - GOTIFY_PASSSTRENGTH
+      - GOTIFY_DATABASE_DIALECT
+      - GOTIFY_DATABASE_CONNECTION
+      - GOTIFY_SERVER_PORT
+      - GOTIFY_SERVER_SSL_ENABLED
+      - GOTIFY_UPLOADEDIMAGESDIR
+      - GOTIFY_PLUGINSDIR
+    #ports:
+    #  - 8080:80
+    volumes:
+      - gotify-data:/app/data
+    networks:
+      - default
+      - tr-gotify
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-gotify
+      # Specify the service url
+      traefik.http.routers.gotify.rule: Host(`gotify.example.com`)
+      # Specify the internal service port
+      traefik.http.services.gotify.loadbalancer.server.port: 80
+      # Only allow entry on specified ports 
+      traefik.http.routers.gotify.entrypoints: web, https
+      # Enable tls
+      traefik.http.routers.gotify.tls: true
+      # Use the certificatesResolvers named default
+      traefik.http.routers.gotify.tls.certresolver: default
+      # Set the service name
+      traefik.http.routers.gotify.service: gotify
+
+  db:
+    image: mariadb:10.5
+    container_name: gotify-db
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+    volumes:
+      - gotify-db-data:/var/lib/mysql
+
+volumes:
+  gotify-data:
+  gotify-db-data:
+
+networks:
+  tr-gotify:
+    external: true
+    name: tr-gotify

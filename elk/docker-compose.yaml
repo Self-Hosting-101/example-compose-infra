@@ -1,0 +1,88 @@
+services:
+  elasticsearch:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    image: lambdhack/elastic:$ELK_VERSION
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch:/usr/share/elasticsearch/data
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ES_JAVA_OPTS: -Xmx${ELASTIC_HEAP} -Xms${ELASTIC_HEAP}
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks.
+      # see: https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+    networks:
+      - elk
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    image: lambdhack/kibana:$ELK_VERSION
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    networks:
+      - elk
+      - tr-elk
+    depends_on:
+      - elasticsearch
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTIC_HOST_PORT: ${ELASTIC_HOST}:${ELASTIC_PORT}
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-elk
+      # Specify the service url
+      traefik.http.routers.kibana.rule: Host(`kibana.example.int`)
+      # Specify the internal service port
+      traefik.http.services.kibana.loadbalancer.server.port: 5601
+      # Only allow entry on specified ports 
+      traefik.http.routers.kibana.entrypoints: int, int-https
+      # Enable tls
+      traefik.http.routers.kibana.tls: true
+      # Set the service name
+      traefik.http.routers.kibana.service: kibana
+
+
+  filebeat:
+    build:
+      context: filebeat/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    image: lambdhack/filebeat:$ELK_VERSION
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTIC_HOST_PORT: ${ELASTIC_HOST}:${ELASTIC_PORT}
+    volumes:
+      - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - elk
+      - socket-logstash
+    depends_on:
+      - elasticsearch
+    external_links:
+      - socket_proxy
+
+networks:
+  elk:
+    driver: bridge
+    internal: "true"
+  tr-elk:
+    name: tr-elk
+    external: "true"
+  socket-logstash:
+    name: socket-logstash
+    external: "true"
+
+volumes:
+  elasticsearch:

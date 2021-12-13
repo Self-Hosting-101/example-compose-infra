@@ -1,0 +1,68 @@
+services:
+  wallabag:
+    image: wallabag/wallabag:latest
+    container_name: wallabag
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD
+      - SYMFONY__ENV__DATABASE_DRIVER
+      - SYMFONY__ENV__DATABASE_HOST
+      - SYMFONY__ENV__DATABASE_PORT
+      - SYMFONY__ENV__DATABASE_NAME
+      - SYMFONY__ENV__DATABASE_USER
+      - SYMFONY__ENV__DATABASE_PASSWORD
+      - SYMFONY__ENV__DATABASE_CHARSET
+      - SYMFONY__ENV__MAILER_HOST
+      - SYMFONY__ENV__MAILER_USER
+      - SYMFONY__ENV__MAILER_PASSWORD
+      - SYMFONY__ENV__FROM_EMAIL
+      - SYMFONY__ENV__SECRET
+      - SYMFONY__ENV__FOSUSER_REGISTRATION
+      - SYMFONY__ENV__FOSUSER_CONFIRMATION
+      - SYMFONY__ENV__DOMAIN_NAME
+    volumes:
+      - wallabag-data:/var/www/wallabag/web/assets/images
+    networks:
+      - default
+      - tr-wallabag
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-wallabag
+      # Specify the service url
+      traefik.http.routers.wallabag.rule: Host(`wallabag.example.com`)
+      # Specify the internal service port
+      traefik.http.services.wallabag.loadbalancer.server.port: 80
+      # Only allow entry on specified ports 
+      traefik.http.routers.wallabag.entrypoints: web, https
+      # Enable tls
+      traefik.http.routers.wallabag.tls: true
+      # Use the certificatesResolvers named default
+      traefik.http.routers.wallabag.tls.certresolver: default
+      # Set the service name
+      traefik.http.routers.wallabag.service: wallabag
+
+  db:
+    image: mariadb:latest
+    container_name: wallabag-mariadb
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD
+    volumes:
+      - wallabag-db:/var/lib/mysql
+
+  redis:
+    image: redis:alpine
+    container_name: wallagab-redis
+    restart: unless-stopped
+
+volumes:
+  wallabag-data:
+  wallabag-db:
+
+networks:
+  tr-wallabag:
+    external: true
+    name: tr-wallabag
+

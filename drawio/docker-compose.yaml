@@ -1,0 +1,35 @@
+services:
+  drawio:
+    image: fjudith/draw.io:latest
+    container_name: drawio
+    restart: unless-stopped
+    #ports:
+    #  - 8080:8080
+    #  - 8443:8443
+    environment:
+      - PUBLIC_DNS
+      - KEYSTORE_PASS
+      - KEY_PASS
+    networks:
+      - tr-drawio
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-drawio
+      # Specify the service url
+      traefik.http.routers.drawio.rule: Host(`drawio.example.int`)
+      # Specify the internal service port
+      traefik.http.services.drawio.loadbalancer.server.port: 8080
+      # Only allow entry on specified ports 
+      traefik.http.routers.drawio.entrypoints: int, int-https
+      # Enable tls
+      traefik.http.routers.drawio.tls: true
+      # Set the service name
+      traefik.http.routers.drawio.service: drawio
+
+
+networks:
+  tr-drawio:
+    external: true
+    name: tr-drawio

@@ -1,0 +1,25 @@
+setup.template.enabled: true
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      # Enable docker
+      hints.enabled: true
+      # Disable watching all docker by default
+      # Containers must be labeled to be monitored
+      hints.default_config.enabled: false
+      host: "tcp://socket_proxy:2375"
+
+
+logging.metrics.enabled: false
+
+processors:
+  - add_docker_metadata:
+      host: "tcp://socket_proxy:2375"
+  - add_host_metadata:
+
+output.elasticsearch:
+  hosts: ["${ELASTIC_HOST_PORT}"]
+  username: "${ELASTIC_USERNAME}"
+  password: "${ELASTIC_PASSWORD}"
+  pipeline: geoip-info

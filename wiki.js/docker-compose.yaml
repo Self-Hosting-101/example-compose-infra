@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:12.1
+    container_name: wikijs_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_PASSWORD
+      - POSTGRES_USER
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  wiki:
+    image: requarks/wiki:2
+    container_name: wikijs
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - DB_TYPE
+      - DB_HOST
+      - DB_PORT
+      - DB_USER
+      - DB_PASS
+      - DB_NAME
+    #ports:
+    #  - "127.0.0.1:3000:3000"
+    networks:
+      default:
+      tr-wikijs:
+      gitea-wikijs:
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-wikijs
+      # Specify the service url
+      traefik.http.routers.wikijs.rule: Host(`wiki.example.int`)
+      # Specify the internal service port
+      traefik.http.services.wikijs.loadbalancer.server.port: 3000
+      # Only allow entry on specified ports 
+      traefik.http.routers.wikijs.entrypoints: int, int-https
+      # Enable tls
+      traefik.http.routers.wikijs.tls: true
+      # Set the service name
+      traefik.http.routers.wikijs.service: wikijs
+
+volumes:
+  db-data:
+
+networks:
+  tr-wikijs:
+    external: true
+    name: tr-wikijs
+  gitea-wikijs:
+    external: true
+    name: gitea-wikijs

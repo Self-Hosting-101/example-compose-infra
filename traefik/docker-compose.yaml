@@ -1,0 +1,157 @@
+services:
+  traefik:
+    image: traefik:v2.5
+    container_name: traefik
+    restart: unless-stopped
+    networks:
+      - internal
+      - socket-traefik
+      - tr-default
+      - tr-codimd
+      - tr-dashmachine
+      - tr-drawio
+      - tr-elk
+      - tr-firefly
+      - tr-gitea
+      - tr-gotify
+      - tr-jellyfin
+      - tr-nextcloud
+      - tr-pihole
+      - tr-torrent
+      - tr-wallabag
+      - tr-wekan
+      - tr-wikijs
+    ports:
+      - 80:80
+      - 443:443
+      - 222:222
+      - 8080:8080
+      - 8081:8081
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml
+      - traefik-certs:/letsencrypt
+      - ./certs:/certs:ro
+      - ./dynamic_config:/opt/dynamic_configuration
+    external_links:
+      - socket_proxy
+    secrets:
+      - "ovh_endpoint"
+      - "ovh_application_key"
+      - "ovh_application_secret"
+      - "ovh_consumer_key"
+    environment:
+      #- LEGO_CA_CERTIFICATES=/certs/ca.crt
+      - "OVH_ENDPOINT_FILE=/run/secrets/ovh_endpoint"
+      - "OVH_APPLICATION_KEY_FILE=/run/secrets/ovh_application_key"
+      - "OVH_APPLICATION_SECRET_FILE=/run/secrets/ovh_application_secret"
+      - "OVH_CONSUMER_KEY_FILE=/run/secrets/ovh_consumer_key"
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: internal
+      # Specify the service url
+      traefik.http.routers.traefik.rule: Host(`traefik.example.int`)
+      # Specify the internal service port
+      traefik.http.services.traefik.loadbalancer.server.port: 80
+      # Only allow entry on specified ports 
+      traefik.http.routers.traefik.entrypoints: int, int-https
+      # Enable tls
+      traefik.http.routers.traefik.tls: true
+      # Set the service name
+      traefik.http.routers.traefik.service: api@internal
+      # Global wildcard certificates
+      # Only one router generate wildcard certs
+      traefik.http.routers.wildcard-certs.tls: true
+      traefik.http.routers.wildcard-certs.entrypoints: https
+      traefik.http.routers.wildcard-certs.tls.certresolver: default
+      traefik.http.routers.wildcard-certs.tls.domains[0].main: example.com
+      traefik.http.routers.wildcard-certs.tls.domains[0].sans: '*.example.com'
+      # filebeat log monitoring
+      co.elastic.logs/enabled: true
+      co.elastic.logs/module: traefik
+
+volumes:
+  traefik-certs:
+
+networks:
+  internal:
+    name: internal
+    driver: bridge
+    internal: "true"
+  socket-traefik:
+    name: socket-traefik
+    external: "true"
+  tr-default:
+    name: tr-default
+    driver: bridge
+    internal: "true"
+  tr-codimd:
+    name: tr-codimd
+    driver: bridge
+    internal: "true"
+  tr-dashmachine:
+    name: tr-dashmachine
+    driver: bridge
+    internal: "true"
+  tr-drawio:
+    name: tr-drawio
+    driver: bridge
+    internal: "true"
+  tr-elk:
+    name: tr-elk
+    driver: bridge
+    internal: "true"
+  tr-firefly:
+    name: tr-firefly
+    driver: bridge
+    internal: "true"
+  tr-gitea:
+    name: tr-gitea
+    driver: bridge
+    internal: "true"
+  tr-gotify:
+    name: tr-gotify
+    driver: bridge
+    internal: "true"
+  tr-jellyfin:
+    name: tr-jellyfin
+    driver: bridge
+    internal: "true"
+  tr-nextcloud:
+    name: tr-nextcloud
+    driver: bridge
+    internal: "true"
+  tr-pihole:
+    name: tr-pihole
+    driver: bridge
+    internal: "false"
+  tr-torrent:
+    name: tr-torrent
+    driver: bridge
+    internal: "true"
+  tr-wallabag:
+    name: tr-wallabag
+    driver: bridge
+    internal: "true"
+  tr-wekan:
+    name: tr-wekan
+    driver: bridge
+    internal: "true"
+  tr-wikijs:
+    name: tr-wikijs
+    driver: bridge
+    internal: "true"
+
+
+secrets:
+  # secret name also used to name the file exposed within the container
+  ovh_endpoint:
+     # path on the host
+    file: ./secrets/ovh_endpoint.secret
+  ovh_application_key:
+    file: ./secrets/ovh_application_key.secret
+  ovh_application_secret:
+    file: ./secrets/ovh_application_secret.secret
+  ovh_consumer_key:
+    file: ./secrets/ovh_consumer_key.secret

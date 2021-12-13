@@ -1,0 +1,63 @@
+services:
+  app:
+    image: nextcloud:latest
+    container_name: nextcloud
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - MYSQL_HOST
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+    #ports:
+    #  - 1234:80
+    volumes:
+      - nextcloud-html:/var/www/html
+      - /mnt/data/nextcloud:/var/www/html/data
+    networks:
+      - default
+      - tr-nextcloud
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-nextcloud
+      # Specify the service url
+      traefik.http.routers.nextcloud.rule: Host(`nextcloud.example.com`)
+      # Specify the internal service port
+      traefik.http.services.nextcloud.loadbalancer.server.port: 80
+      # Only allow entry on specified ports 
+      traefik.http.routers.nextcloud.entrypoints: web, https
+      # Enable tls
+      traefik.http.routers.nextcloud.tls: true
+      # Use the certificatesResolvers named default
+      traefik.http.routers.nextcloud.tls.certresolver: default
+      # Set the service name
+      traefik.http.routers.nextcloud.service: nextcloud
+      # Resolve .well-known card and calendar
+      traefik.frontend.redirect.permanent: true
+      traefik.frontend.redirect.regex: https://(.*)/.well-known/(card|cal)dav
+      traefik.frontend.redirect.replacement: https://$$1/remote.php/dav/
+
+  db:
+    image: mariadb:10.5
+    container_name: nextcloud-db
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+    volumes:
+      - nextcloud-db-data:/var/lib/mysql
+
+volumes:
+  nextcloud-html:
+  nextcloud-db-data:
+
+networks:
+  tr-nextcloud:
+    external: true
+    name: tr-nextcloud

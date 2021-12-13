@@ -1,0 +1,54 @@
+services:
+  jellyfin:
+    image: ghcr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - NVIDIA_DRIVER_CAPABILITIES
+      - NVIDIA_VISIBLE_DEVICES
+    # Uncomment if you want to use nvidia graphic card
+    #runtime: nvidia
+    volumes:
+      - config:/config
+      - cache:/cache # can grow rappydly 50GB on big library
+      # medias are mapped to nextcloud folder. So they can be accessed through it.
+      - /mnt/data/nextcloud/toto/files/Multimedia/Films:/media/movies
+      - /mnt/data/nextcloud/toto/files/Multimedia/Series:/media/series
+      - /mnt/data/nextcloud/toto/files/Multimedia/Music:/media/music
+    #ports:
+    #  - 8096:8096
+    networks:
+      - tr-jellyfin
+      - jellyfin-internet
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-jellyfin
+      # Specify the service url
+      traefik.http.routers.jellyfin.rule: Host(`jellyfin.example.com`)
+      # Specify the internal service port
+      traefik.http.services.jellyfin.loadbalancer.server.port: 8096
+      # Only allow entry on specified ports 
+      traefik.http.routers.jellyfin.entrypoints: web, https
+      # Enable tls
+      traefik.http.routers.jellyfin.tls: true
+      # Use the certificatesResolvers named default
+      traefik.http.routers.jellyfin.tls.certresolver: default
+      # Set the service name
+      traefik.http.routers.jellyfin.service: jellyfin
+
+volumes:
+  config:
+  cache:
+
+networks:
+  tr-jellyfin:
+    external: true
+    name: tr-jellyfin
+  jellyfin-internet:
+    name: jellyfin-internet
+    driver: bridge

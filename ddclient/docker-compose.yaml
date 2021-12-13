@@ -1,0 +1,11 @@
+services:
+  ddclient:
+    image: linuxserver/ddclient:latest
+    container_name: ddclient
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - ./ddclient.conf:/config/ddclient.conf

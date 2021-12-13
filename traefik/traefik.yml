@@ -1,0 +1,117 @@
+global:
+  sendAnonymousUsage: false
+  checkNewVersion: false
+  
+providers:
+  docker:
+    exposedByDefault: false
+    network: tr-default
+    endpoint: "tcp://socket_proxy:2375"
+
+  # set path to dynamic configuration file folder
+  file:
+    directory: /opt/dynamic_configuration
+    watch: true
+
+api:
+  dashboard: true
+
+entryPoints:
+
+  web:
+    address: ":80"
+    http:
+      redirections:
+      # redirect 80 to 443
+      # https://docs.traefik.io/routing/entrypoints/#redirection
+        entryPoint:
+          to: https
+          scheme: https
+
+  https:
+    address: ":443"
+
+  int:
+    address: ":8080"
+    http:
+      redirections:
+        entryPoint:
+          to: int-https
+          scheme: https
+
+  int-https:
+    address: ":8081"
+  
+  ssh:
+    address: ":222"
+
+
+serversTransport:
+  insecureSkipVerify: true
+  rootCAs:
+    - /certs/ca.crt
+
+certificatesResolvers:
+  default:
+    acme:
+      email: toto@example.com
+      storage: /letsencrypt/acme.json
+      keyType: EC384
+      preferredChain: 'ISRG Root X2'
+      # staging server for tests
+      #caserver: https://acme-staging-v02.api.letsencrypt.org/directory
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      dnschallenge:
+        provider: ovh
+        delayBeforeCheck: 10
+      # If you use the http challenge make sure to delete the redirections section in web entrypoint
+      #httpChallenge:
+      #  # used during the challenge
+      #  entryPoint: web
+
+
+log:
+  level: INFO
+
+accessLog:
+  fields:
+    defaultMode: keep
+    names:
+      StartUTC:
+      StartLocal:
+      Duration:
+        RouterName: keep
+        ServiceName: keep
+        ServiceURL: keep
+        ServiceAddr: keep
+        ClientAddr: keep
+        ClientHost: keep
+        ClientPort: keep
+        ClientUsername: keep
+        RequestAddr: keep
+        RequestHost: keep
+        RequestPort: keep
+        RequestMethod: keep
+        RequestPath: keep
+        RequestProtocol: keep
+        RequestScheme: keep
+        RequestLine: keep
+        RequestContentSize: keep
+        OriginDuration: keep
+        OriginContentSize: keep
+        OriginStatus: keep
+        OriginStatusLine: keep
+        DownstreamStatus: keep
+        DownstreamStatusLine: keep
+        DownstreamContentSize: keep
+        RequestCount: keep
+        GzipRatio: keep
+        Overhead: keep
+        RetryAttempts: keep
+    headers:
+      defaultMode: keep
+      names:
+        User-Agent: keep
+        Authorization: keep
+        Content-Type: keep
+

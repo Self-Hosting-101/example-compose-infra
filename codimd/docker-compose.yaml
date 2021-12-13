@@ -1,0 +1,60 @@
+services:
+  codimd:
+    image: hackmdio/hackmd:latest
+    container_name: codimd
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - CMD_DB_URL
+      - CMD_USECDN
+      - CMD_ALLOW_ANONYMOUS
+      - CMD_ALLOW_ANONYMOUS_EDITS
+      - CMD_DEFAULT_PERMISSION
+      - CMD_ALLOW_FREEURL
+      - CMD_ALLOW_PDF_EXPORT
+    #ports:
+    #  - 3000:3000
+    volumes:
+      - upload-data:/home/hackmd/app/public/uploads
+    networks:
+      - default
+      - tr-codimd
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-codimd
+      # Specify the service url
+      traefik.http.routers.codimd.rule: Host(`codimd.example.com`)
+      # Specify the internal service port
+      traefik.http.services.codimd.loadbalancer.server.port: 3000
+      # Only allow entry on specified ports 
+      traefik.http.routers.codimd.entrypoints: web, https
+      # Enable tls
+      traefik.http.routers.codimd.tls: true
+      # Use the certificatesResolvers named default
+      traefik.http.routers.codimd.tls.certresolver: default
+      # Set the service name
+      traefik.http.routers.codimd.service: codimd
+
+
+  db:
+    image: postgres:11.6-alpine
+    container_name: codimd-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    volumes:
+      - database-data:/var/lib/postgresql/data
+
+volumes:
+  upload-data:
+  database-data:
+
+networks:
+  tr-codimd:
+    external: true
+    name: tr-codimd

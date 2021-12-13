@@ -1,0 +1,49 @@
+services:
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    restart: unless-stopped
+    ports:
+      - "10.10.10.10:53:53/tcp"
+      - "10.10.10.10:53:53/udp"
+      # uncomment with the ip of your wireguard vpn
+      # if you want to make services resolvable when
+      # connected to it
+      #- "10.0.0.1:53:53/tcp"
+      #- "10.0.0.1:53:53/udp"
+    environment:
+      - ServerIP
+      - PROXY_LOCATION
+      - VIRTUAL_HOST
+      - VIRTUAL_PORT
+      - TZ
+      - WEBPASSWORD
+    volumes:
+      - ./etc/pihole:/etc/pihole/
+      - ./dnsmasq:/etc/dnsmasq.d/
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+      - 8.8.8.8
+    networks:
+      - tr-pihole
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-pihole
+      # Specify the service url
+      traefik.http.routers.pihole.rule: Host(`pihole.example.int`)
+      # Specify the internal service port
+      traefik.http.services.pihole.loadbalancer.server.port: 80
+      # Only allow entry on specified ports 
+      traefik.http.routers.pihole.entrypoints: int, int-https
+      # Enable tls
+      traefik.http.routers.pihole.tls: true
+      # Set the service name
+      traefik.http.routers.pihole.service: pihole
+
+networks:
+  tr-pihole:
+    external: true
+    name: tr-pihole

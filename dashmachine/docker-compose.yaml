@@ -1,0 +1,34 @@
+services:
+  dashmachine:
+    image: rmountjoy/dashmachine:latest
+    container_name: dashmachine
+    restart: unless-stopped
+    volumes:
+      - user_data:/dashmachine/dashmachine/user_data
+    #ports:
+    #  - 5000:5000
+    networks:
+      - tr-dashmachine
+    labels:
+      # Expose the container
+      traefik.enable: "true"
+      # Specify the network to be used with traefik
+      traefik.docker.network: tr-dashmachine
+      # Specify the service url
+      traefik.http.routers.dashmachine.rule: Host(`dashmachine.example.int`)
+      # Specify the internal service port
+      traefik.http.services.dashmachine.loadbalancer.server.port: 5000
+      # Only allow entry on specified ports 
+      traefik.http.routers.dashmachine.entrypoints: int, int-https
+      # Enable tls
+      traefik.http.routers.dashmachine.tls: true
+      # Set the service name
+      traefik.http.routers.dashmachine.service: dashmachine
+
+volumes:
+  user_data:
+
+networks:
+  tr-dashmachine:
+    external: true
+    name: tr-dashmachine

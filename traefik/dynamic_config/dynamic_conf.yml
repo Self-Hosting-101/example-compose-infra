@@ -1,0 +1,6 @@
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/*.example.int.pem
+        keyFile: /certs/*.example.int_rsa.key
