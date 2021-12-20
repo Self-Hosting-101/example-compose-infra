@@ -4,6 +4,7 @@ services:
     container_name: traefik
     restart: unless-stopped
     networks:
+      - default
       - internal
       - socket-traefik
       - tr-default
